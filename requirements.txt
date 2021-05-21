@@ -2,11 +2,10 @@
  pandas
  streamlit
  altair
- PIL  
- matplotlib.cm
-matplotlib.colors
+Pillow
+ matplotlib
 streamlit_folium 
 folium
-sklearn.cluster 
-streamlit.components.v1
+sklearn
+streamlit
 seaborn
