@@ -1,10 +1,19 @@
+
+
+
 ######################
 # Import libraries
 ######################
 import numpy as np
 import pandas as pd
+import json
+import geocoder
+from bs4 import BeautifulSoup
+from geopy.geocoders import Nominatim
+import requests
 import streamlit as st
 import altair as alt
+from pandas.io.json import json_normalize
 from PIL import Image
 import matplotlib.cm as cm
 import matplotlib.colors as colors
@@ -25,20 +34,55 @@ def app():
     ***
     """)
     
-    option = st.selectbox("Pick the city of your choice?",
-    ("Delhi", "Mumbai", "Hyderabad","Bengaluru"))
-    st.write('You selected:', option)
-    
-    
+   
     st.write("""## NEIGHBOURHOOD DATA""")
     
     
-    kl_df = pd.read_csv('kl_df.csv')
-    st.dataframe(kl_df)
+    
+
+    data = requests.get("https://en.wikipedia.org/wiki/Category:Neighbourhoods_in_Delhi").text
+    soup = BeautifulSoup(data, 'html.parser')
+    neighborhoodList = []
+    for row in soup.find_all("div", class_="mw-category")[0].findAll("li"):
+        neighborhoodList.append(row.text)
+    neighborhoodList.pop(0)
+
+    kl_df = pd.DataFrame({"Neighborhood": neighborhoodList})
+
+
+    def get_latlng(neighborhood):
+        # initialize your variable to None
+        lat_lng_coords = None
+        # loop until you get the coordinates
+        while(lat_lng_coords is None):
+            g = geocoder.arcgis('{}, Delhi, India'.format(neighborhood))
+            lat_lng_coords = g.latlng
+        return lat_lng_coords
+
+    coords = [ get_latlng(neighborhood) for neighborhood in kl_df["Neighborhood"].tolist() ]
+
+    df_coords = pd.DataFrame(coords, columns=['Latitude', 'Longitude'])
+    kl_df['Latitude'] = df_coords['Latitude']
+    kl_df['Longitude'] = df_coords['Longitude']
+
+
+    address = 'New Delhi,India'
+
+    geolocator = Nominatim(user_agent="http")
+    location = geolocator.geocode(address)
+    latitude = location.latitude
+    longitude = location.longitude# create map of Delhi using latitude and longitude values
+    map_kl = folium.Map(location=[latitude, longitude], zoom_start=11)
+
+
+    st.write('The geograpical coordinate of Delhi,India {}, {}.'.format(latitude, longitude))
+
+
+
+
     
     
-    # create map of DELHI using latitude and longitude values
-    map_kl = folium.Map(location=[28.6138954, 77.2090057], zoom_start=11)
+    
     
     
     # add markers to map
@@ -60,7 +104,51 @@ def app():
     folium_static(map_kl)
 
 
-    venues_df=pd.read_csv("venues_df.csv")
+    CLIENT_ID = '0KREV0N02JYICMYPCGBXI1WIVWA0J5Y5ETH52S5ZMBHSTFUV' # your Foursquare ID
+    CLIENT_SECRET = 'UTWX0N0TTMPP0YRZ5VWWUMAHJXW5XFIF0XLDLPZWQCH0MLTM' # your Foursquare Secret
+    VERSION = '201900731'
+
+
+
+    radius = 2000
+    LIMIT = 100
+
+    venues = []
+
+    for lat, long, neighborhood in zip(kl_df['Latitude'], kl_df['Longitude'], kl_df['Neighborhood']):
+    
+        # create the API request URL
+        url = "https://api.foursquare.com/v2/venues/explore?client_id={}&client_secret={}&v={}&ll={},{}&radius={}&limit={}".format(
+            CLIENT_ID,
+            CLIENT_SECRET,
+            VERSION,
+            lat,
+            long,
+            radius, 
+            LIMIT)
+    
+        # make the GET request
+        results = requests.get(url).json()['response']['groups'][0]['items']
+        # return only relevant information for each nearby venue
+        for venue in results:
+            venues.append((
+                neighborhood,
+                lat, 
+                long, 
+                venue['venue']['name'], 
+                venue['venue']['location']['lat'], 
+                venue['venue']['location']['lng'],  
+                venue['venue']['categories'][0]['name']))
+        
+        
+        
+    venues_df = pd.DataFrame(venues)
+
+    # define the column names
+    venues_df.columns = ['Neighborhood', 'Latitude', 'Longitude', 'VenueName', 'VenueLatitude', 'VenueLongitude', 'VenueCategory']
+
+
+
 
     # one hot encoding
     kl_onehot = pd.get_dummies(venues_df[['VenueCategory']], prefix="", prefix_sep="")
@@ -132,7 +220,6 @@ def app():
     folium_static(map_clusters)
     
     st.write("[Click to open xyz sales report](https://share.streamlit.io/your/app/link)")
-    
 
  
     
