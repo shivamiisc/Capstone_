@@ -9,3 +9,8 @@ folium
 sklearn
 streamlit
 seaborn
+json
+geopy
+geocoder
+beautifulsoup4 
+requests
