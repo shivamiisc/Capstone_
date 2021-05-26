@@ -1,6 +1,7 @@
 import streamlit as st 
 import streamlit.components.v1 as stc
 import numpy as np
+from PIL import Image
 import pandas as pd
 
 # Data Visualisation
@@ -12,16 +13,15 @@ from matplotlib import pyplot as plt
 import matplotlib 
 matplotlib.rcParams["figure.figsize"] = (20,10)
 
-HTML_BANNER = """
-    <div style="background-color:#464e5f;padding:10px;border-radius:10px">
-    <h1 style="color:white;text-align:center;">Build your Restaurant </h1>
-    </div>
-    """
+
 
 import matplotlib.pyplot as plt
 
 
 def app():
+    image11 = Image.open('Simple Inspirational Travel Quote Cover Photo.png')
+    st.image(image11, use_column_width=True)
+    st.write(" # Housing Cost Prediction")
     df1 = pd.read_csv("Bengaluru_House_Data.csv")
     df1['area_type'].unique()
     df2 = df1.drop(['area_type','society','balcony','availability'],axis='columns')
@@ -48,7 +48,7 @@ def app():
     df4 = df3.copy()
     df4.total_sqft = df4.total_sqft.apply(convert_sqft_to_num)
     df4 = df4[df4.total_sqft.notnull()]
-    df4.loc[30]
+    
     df5 = df4.copy()
     df5['price_per_sqft'] = df5['price']*100000/df5['total_sqft']
     df5.to_csv("bhp.csv",index=False)
@@ -60,7 +60,7 @@ def app():
 
     df5.location = df5.location.apply(lambda x: 'other' if x in location_stats_less_than_10 else x)
     df5[df5.total_sqft/df5.bhk<300].head()
-    df5
+    
     df5.price_per_sqft.describe()
     import matplotlib.pyplot as plt
 
@@ -109,8 +109,6 @@ def app():
 
     plot_scatter_chart(df8,"Rajaji Nagar")
 
-    df8[df8.bath>10]
-    df8[df8.bath>df8.bhk+2]
     df9 = df8[df8.bath<df8.bhk+2]
 
     df10 = df9.drop(['size','price_per_sqft'],axis='columns')
@@ -128,21 +126,24 @@ def app():
     lr_clf.fit(X_train,y_train)
     lr_clf.score(X_test,y_test)
 
-    def predict_price(location,sqft,bath,bhk): 
+    def predict_price(location,sqft): 
         loc_index = np.where(X.columns==location)[0][0]
         x = np.zeros(len(X.columns))
         x[0] = sqft
-        x[1] = bath
-        x[2] = bhk
+
         if loc_index >= 0:
             x[loc_index] = 1
         
         return lr_clf.predict([x])[0]
+    loc_ation = df10['location'].unique()
     
-    st.write("Cost of Building Restaurant in Jp nagar is: ",predict_price('1st Phase JP Nagar',1000, 2, 2),"Lakh's")
-    st.write("Cost of Building Restaurant in Indira Nagarr is",predict_price('Indira Nagar',1000, 3, 3),"Lakh's")
-
-
+    g = st.selectbox("Choose Location", 
+        list(loc_ation))
+    values = st.slider(
+        'Enter Value in Square feet',
+        10.0, 10000.0)
+    
+    st.write("Cost of Building Restaurant in",g,"is",predict_price(g, values),"Lakh's")
 
 
 
