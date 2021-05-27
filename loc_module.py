@@ -246,7 +246,6 @@ def app():
             folium_static(map_clusters)
             st.write('data set with clustered data')
             st.dataframe(kl_merged)
-            st.baloons()
 
     if st.checkbox('Go Ahead'):
         scraping()
