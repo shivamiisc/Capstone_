@@ -66,7 +66,7 @@ def app():
             key = 'c1c41ad8b5ea4137bace4778fd7aee18'  # get api key from:  https://opencagedata.com
             geocoder = OpenCageGeocode(key)
 
-            with st.spinner('Wait for it...'):
+            with st.spinner('Wait for it... it make 2-5 minutes'):
                 time.sleep(5)
  
   
